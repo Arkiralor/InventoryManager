@@ -1,8 +1,11 @@
+from enum import unique
 from django.db import models
 from django.template.defaultfilters import slugify
 from core.boilerplate.base_model import BaseModel
+from core.boilerplate.custom_fields import EncryptedJSONField
 from django.conf import settings as django_settings
 from django.contrib.auth.hashers import make_password
+from auth_app.model_choices import Oauth2Choices
 
 from datetime import datetime, timedelta
 from uuid import uuid4
@@ -90,4 +93,25 @@ class UserProfile(BaseModel):
             models.Index(fields=("user",)),
             models.Index(fields=("first_name", "last_name")),
         )
+
+class UserOauth2Credential(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='oauth2_tokens')
+    user_provider_id = models.UUIDField(help_text="User ID provided by the OAuth2 provider")
+    provider = models.CharField(max_length=50, choices=Oauth2Choices.PROVIDER_CHOICES)
+    credentials = EncryptedJSONField(
+        help_text="Encrypted OAuth2 credentials",
+        default=dict
+    )
+    issued_at = models.DateTimeField(null=True, blank=True)
+    expires_on = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.email} - {self.provider} OAuth2 Credentials"
+    
+    class Meta:
+        unique_together = ('user', 'provider')
+        indexes = (
+            models.Index(fields=("user", "provider")),
+        )
+
     

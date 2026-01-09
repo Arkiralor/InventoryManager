@@ -4,7 +4,7 @@ from rest_framework import status
 from django.conf import settings as django_settings
 from django.utils import timezone
 
-from auth_app.models import User, UserProfile
+from auth_app.models import User, UserProfile, UserOauth2Credential
 from auth_app.constants import FormatRegex
 from auth_app.serializers import UserSerializer, UserProfileOutputSerializer, UserProfileInputSerializer, UserRegisterSerializer
 from auth_app.utils import JWTUtils
@@ -252,3 +252,7 @@ class UserModelHelpers:
         resp.status_code = status.HTTP_200_OK
         logger.info(resp.to_text())
         return resp
+
+
+class Oauth2Helpers:
+    pass

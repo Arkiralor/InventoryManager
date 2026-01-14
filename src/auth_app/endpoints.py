@@ -7,5 +7,5 @@ PREFIX = "api/auth/"
 urlpatterns = [
     path('register-normal/', UserRegisterAPI.as_view(), name='new-user-registration'),
     path('register-sudo/', AdminUserRegisterAPI.as_view(), name='admin-user-registration'),
-    path('login/', UserRegisterAPI.as_view(), name='password-login'),
+    path('login/', UserPasswordLoginAPI.as_view(), name='password-login'),
 ]

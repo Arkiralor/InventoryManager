@@ -141,11 +141,7 @@ class InventoryItemCategoryHelpers:
             if field not in cls.EDITABLE_FIELDS:
                 resp.error = "Invalid field."
                 resp.message = f"The field '{field}' cannot be updated. Only the following fields can be updated: {', '.join(cls.EDITABLE_FIELDS)}."
-                resp.data = {
-                    field: data[field]
-                    for field in data
-                    if field not in cls.EDITABLE_FIELDS
-                }
+                resp.data = data
                 resp.status_code = status.HTTP_400_BAD_REQUEST
 
                 logger.error(resp.to_text())
@@ -203,4 +199,156 @@ class InventoryItemCategoryHelpers:
         resp.message = f"Category '{name}' deleted successfully."
         resp.status_code = status.HTTP_200_OK
         logger.info(resp.to_text())
+        return resp
+
+
+class InventoryItemHelpers:
+    EDITABLE_FIELDS = ("name", "description", "sku", "category", "quantity", "price")
+    INPUT_SERIALIZER = InventoryItemInputSerializer
+    OUTPUT_SERIALIZER = InventoryItemOutputSerializer
+    Model = InventoryItem
+
+    @classmethod
+    def get(
+        cls, _id: str, name: str, return_obj: bool = False, *args, **kwargs
+    ) -> Resp:
+        resp = Resp()
+        if _id and not name:
+            item_obj = cls.Model.objects.filter(id=_id).first()
+        elif name and not _id:
+            item_obj = cls.Model.objects.filter(name__iexact=name).first()
+        else:
+            resp.error = "Invalid parameters."
+            resp.message = "Provide either 'id' or 'name' to fetch the inventory item."
+            resp.status_code = status.HTTP_400_BAD_REQUEST
+
+            logger.error(resp.to_text())
+            return resp
+
+        if not item_obj:
+            resp.error = "Inventory item not found."
+            resp.message = f"Inventory item ({_id if _id else name}) not found with the provided parameters."
+            resp.status_code = status.HTTP_404_NOT_FOUND
+
+            logger.error(resp.to_text())
+            return resp
+
+        resp.message = f"Inventory item ({_id if _id else name}) fetched successfully."
+        resp.data = item_obj if return_obj else cls.OUTPUT_SERIALIZER(item_obj).data
+        resp.status_code = status.HTTP_200_OK
+
+        logger.info(resp.to_text())
+        return resp
+
+    @classmethod
+    def create(cls, data: dict, return_obj: bool = False) -> Resp:
+        resp = Resp()
+        if "id" in data:
+            resp.error = "ID field present."
+            resp.message = "The 'id' field is auto-generated and should not be included in the request data."
+            resp.status_code = status.HTTP_400_BAD_REQUEST
+
+            logger.error(resp.to_text())
+            del data["id"]  # Remove ID if provided to prevent confusion
+
+        deserialized = cls.INPUT_SERIALIZER(data=data)
+        if not deserialized.is_valid():
+            resp.error = "Invalid data."
+            resp.message = f"{deserialized.errors}"
+            resp.data = data
+            resp.status_code = status.HTTP_400_BAD_REQUEST
+
+            logger.error(resp.to_text())
+            return resp
+
+        deserialized.save()
+
+        resp.message = (
+            f"Inventory item '{deserialized.instance.name}' created successfully."
+        )
+        resp.data = (
+            deserialized.instance
+            if return_obj
+            else cls.OUTPUT_SERIALIZER(deserialized.instance).data
+        )
+        resp.status_code = status.HTTP_201_CREATED
+
+        logger.info(resp.to_text())
+        return resp
+
+    @classmethod
+    def update(
+        cls, user: User, _id: str, data: dict, return_obj: bool = False, *args, **kwargs
+    ) -> Resp:
+        resp = Resp()
+        if not user or not isinstance(user, User):
+            resp.error = "Invalid user."
+            resp.message = "A valid user must be provided to perform this action."
+            resp.status_code = status.HTTP_400_BAD_REQUEST
+
+            logger.error(resp.to_text())
+            return resp
+
+        if not (user.is_superuser or user.is_staff):
+            resp.error = "Permission denied."
+            resp.message = "You do not have permission to perform this action."
+            resp.status_code = status.HTTP_403_FORBIDDEN
+
+            logger.error(resp.to_text())
+            return resp
+
+        obj_resp = cls.get(_id=_id, return_obj=True)
+        if obj_resp.error:
+            return obj_resp
+
+        obj = obj_resp.data
+        db_data = cls.INPUT_SERIALIZER(obj).data
+        for field in data:
+            if field not in cls.EDITABLE_FIELDS:
+                resp.error = "Invalid field."
+                resp.message = f"The field '{field}' cannot be updated. Only the following fields can be updated: {', '.join(cls.EDITABLE_FIELDS)}."
+                resp.data = data
+                resp.status_code = status.HTTP_400_BAD_REQUEST
+
+                logger.error(resp.to_text())
+                return resp
+
+        for field in db_data:
+            db_data[field] = data.get(field, db_data[field])
+
+        deserialized = cls.INPUT_SERIALIZER(obj, data=db_data)
+        if not deserialized.is_valid():
+            resp.error = "Invalid data."
+            resp.message = f"{deserialized.errors}"
+            resp.data = data
+            resp.status_code = status.HTTP_400_BAD_REQUEST
+
+            logger.error(resp.to_text())
+            return resp
+
+        deserialized.save()
+
+        resp.message = (
+            f"Inventory item '{deserialized.instance.name}' updated successfully."
+        )
+        resp.data = (
+            deserialized.instance
+            if return_obj
+            else cls.OUTPUT_SERIALIZER(deserialized.instance).data
+        )
+        resp.status_code = status.HTTP_200_OK
+
+        logger.info(resp.to_text())
+        return resp
+
+    @classmethod
+    def delete(cls) -> Resp:
+        resp = Resp()
+        resp.error = "Not implemented."
+        resp.message = (
+            "The delete method for InventoryItemHelpers is not yet implemented."
+        )
+        resp.status_code = status.HTTP_501_NOT_IMPLEMENTED
+
+        logger.error(resp.to_text())
         return resp

@@ -47,6 +47,7 @@ class InventoryItem(BaseModel):
             self.description = self.clean_text_attribute('description')
         if self.sku:
             self.sku = self.clean_text_attribute('sku', lower=True)
+            
         super(InventoryItem, self).save(*args, **kwargs)
 
     class Meta:

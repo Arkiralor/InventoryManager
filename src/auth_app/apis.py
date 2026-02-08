@@ -10,24 +10,24 @@ from auth_app import logger
 
 
 class UserRegisterAPI(APIView):
-
     permission_classes = (AllowAny,)
 
     def post(self, request: Request) -> Response:
         resp = UserModelHelpers.register(data=request.data)
         return resp.to_response()
-    
-class AdminUserRegisterAPI(APIView):
 
+
+class AdminUserRegisterAPI(APIView):
     permission_classes = (IsAdminUser,)
 
     def post(self, request: Request) -> Response:
-        resp = UserModelHelpers.register(data=request.data, is_admin=True, is_staff=True)
+        resp = UserModelHelpers.register(
+            data=request.data, is_admin=True, is_staff=True
+        )
         return resp.to_response()
-    
+
 
 class UserPasswordLoginAPI(APIView):
-
     permission_classes = (AllowAny,)
 
     def post(self, request: Request) -> Response:
@@ -35,8 +35,6 @@ class UserPasswordLoginAPI(APIView):
         email = request.data.get("email")
         password = request.data.get("password")
         resp = UserModelHelpers.login_via_password(
-            username=username,
-            email=email,
-            password=password
+            username=username, email=email, password=password
         )
         return resp.to_response()

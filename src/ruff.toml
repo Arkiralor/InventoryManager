@@ -46,7 +46,10 @@ ignore = [
     "F401",
     # Ignore unused definitions, as they are often handled by other tools.
     "F841",
-    "F811"
+    "F811",
+    # Ignore f-string parsing errors, as they can be caused by false positives in
+    # the presence of non-ASCII characters.
+    "F541"
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.

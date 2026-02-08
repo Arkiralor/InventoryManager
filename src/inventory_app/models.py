@@ -116,8 +116,10 @@ class IncomingShipmentLine(BaseModel):
         if self.batch_number:
             self.batch_number = self.clean_text_attribute(
                 'batch_number', lower=True)
-        if self.warehouse:
-            self.warehouse = self.clean_text_attribute('warehouse')
+
+        if self.item and self.quantity:
+            self.item.quantity += self.quantity
+            self.item.save(update_fields=['quantity'])
         super(IncomingShipmentLine, self).save(*args, **kwargs)
 
     class Meta:

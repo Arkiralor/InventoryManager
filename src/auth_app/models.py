@@ -81,10 +81,13 @@ class UserProfile(BaseModel):
     
     def save(self, *args, **kwargs):
         if self.first_name:
-            self.first_name = self.first_name.lstrip().rstrip().title()
+            self.clean_text_attribute('first_name', lower=True)
         
         if self.last_name:
-            self.last_name = self.last_name.lstrip().rstrip().title()
+            self.clean_text_attribute('last_name', lower=True)
+
+        if self.bio:
+            self.clean_text_attribute('bio')
 
         super(UserProfile, self).save(*args, **kwargs)
     

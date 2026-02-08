@@ -35,7 +35,7 @@ class BillItem(BaseModel):
     note = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        taxes: ItemTax = self.taxes.all()
+        taxes: list[ItemTax] = self.taxes.all()
         self.total = self.item.price * self.quantity
         for tax in taxes:
             self.total += (self.total * tax.percentage) / 100
@@ -67,7 +67,7 @@ class Bill(BaseModel):
     note = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        items: BillItem = self.items.all()
+        items: list[BillItem] = self.items.all()
         self.total_amount = sum(item.total for item in items) - self.additional_discount
         self.due_amount = self.total_amount - self.paid_amount
 

@@ -2,11 +2,20 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from dotenv import read_dotenv
+from utils.network import NetworkUtils
 
 
 def main():
     """Run administrative tasks."""
+
+    ## Custom-code.
+    read_dotenv()  # Load environment variables from .env file
+    NetworkUtils.add_to_allowed_hosts()
+    ## End of custom-code.
+
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

@@ -452,6 +452,36 @@ class IncomingShipmentLineHelpers:
         return resp
 
     @classmethod
+    def _list(cls, incoming_shipment_id: str, return_objs: bool = False) -> Resp:
+        resp = Resp()
+        if not incoming_shipment_id:
+            resp.error = "Incoming shipment ID parameter is required."
+            resp.message = "The 'incoming_shipment_id' parameter is required to fetch the shipment lines."
+            resp.status_code = status.HTTP_400_BAD_REQUEST
+
+            logger.error(resp.to_text())
+            return resp
+
+        lines_qs = cls.Model.objects.filter(shipment__id=incoming_shipment_id)
+
+        if not lines_qs.exists():
+            resp.error = "No shipment lines found."
+            resp.message = f"No shipment lines found for incoming shipment with id '{incoming_shipment_id}'."
+            resp.status_code = status.HTTP_404_NOT_FOUND
+
+            logger.error(resp.to_text())
+            return resp
+
+        resp.message = f"Shipment lines for incoming shipment with id '{incoming_shipment_id}' fetched successfully."
+        resp.data = (
+            list(lines_qs) if return_objs else cls.OUTPUT_SERIALIZER(lines_qs, many=True).data
+        )
+        resp.status_code = status.HTTP_200_OK
+
+        logger.info(resp.to_text())
+        return resp
+
+    @classmethod
     def create(cls, data: dict, return_obj: bool = False) -> Resp:
         resp = Resp()
         if "id" in data:

@@ -43,7 +43,7 @@ class InventoryItemCategoryManagementAPI(APIView):
         _id = request.data.get("id")
         resp = InventoryItemCategoryHelpers.delete(user=request.user, _id=_id)
         return resp.to_response()
-    
+
 
 class InventoryItemAPI(APIView):
     permission_classes = (IsAuthenticated,)
@@ -57,7 +57,8 @@ class InventoryItemAPI(APIView):
     def post(self, request: Request) -> Response:
         resp = InventoryItemHelpers.create(data=request.data)
         return resp.to_response()
-    
+
+
 class InventoryItemManagementAPI(APIView):
     permission_classes = (IsAuthenticated,)
 
@@ -76,4 +77,68 @@ class InventoryItemManagementAPI(APIView):
 
     def delete(self, request: Request) -> Response:
         resp = InventoryItemHelpers.delete()
+        return resp.to_response()
+
+
+class IncomingShipmentAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request: Request) -> Response:
+        resp = IncomingShipmentHelpers.get(_id=request.query_params.get("id"))
+        return resp.to_response()
+
+    def post(self, request: Request) -> Response:
+        resp = IncomingShipmentHelpers.create(user=request.user, data=request.data)
+        return resp.to_response()
+
+
+class IncomingShipmentManagementAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request: Request) -> Response:
+
+        resp = IncomingShipmentLineHelpers._list(
+            incoming_shipment_id=request.query_params.get("id")
+        )
+
+        return resp.to_response()
+
+    def put(self, request: Request) -> Response:
+        _id = request.data.get("id")
+        resp = IncomingShipmentHelpers.update(
+            user=request.user, _id=_id, data=request.data
+        )
+        return resp.to_response()
+
+    def delete(self, request: Request) -> Response:
+        _id = request.data.get("id")
+        resp = IncomingShipmentHelpers.delete(user=request.user, _id=_id)
+        return resp.to_response()
+
+
+class IncomingShipmentLineAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request: Request) -> Response:
+        resp = IncomingShipmentLineHelpers.get(_id=request.query_params.get("id"))
+        return resp.to_response()
+
+    def post(self, request: Request) -> Response:
+        resp = IncomingShipmentLineHelpers.create(data=request.data)
+        return resp.to_response()
+
+
+class IncomingShipmentLineManagementAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def put(self, request: Request) -> Response:
+        _id = request.data.get("id")
+        resp = IncomingShipmentLineHelpers.update(
+            user=request.user, _id=_id, data=request.data
+        )
+        return resp.to_response()
+
+    def delete(self, request: Request) -> Response:
+        _id = request.data.get("id")
+        resp = IncomingShipmentLineHelpers.delete(user=request.user, _id=_id)
         return resp.to_response()

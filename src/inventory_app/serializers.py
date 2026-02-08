@@ -20,17 +20,21 @@ class InventoryItemOutputSerializer(ModelSerializer):
         fields = "__all__"
 
 
+
+# IncomingShipmentLineInputSerializer should not include shipment, as the model does not have a shipment FK anymore
 class IncomingShipmentLineInputSerializer(ModelSerializer):
     class Meta:
         model = IncomingShipmentLine
-        fields = "__all__"
+        exclude = ("shipments",) if hasattr(IncomingShipmentLine, "shipments") else ()
+
 
 class IncomingShipmentLineOutputSerializer(ModelSerializer):
     item = InventoryItemOutputSerializer(read_only=True)
 
     class Meta:
         model = IncomingShipmentLine
-        fields = "__all__"
+        exclude = ("shipments",) if hasattr(IncomingShipmentLine, "shipments") else ()
+
 
 
 class IncomingShipmentInputSerializer(ModelSerializer):
@@ -38,9 +42,10 @@ class IncomingShipmentInputSerializer(ModelSerializer):
         model = IncomingShipment
         fields = "__all__"
 
+
 class IncomingShipmentOutputSerializer(ModelSerializer):
     received_by = UserSerializer(read_only=True)
-    shipment_lines = IncomingShipmentLineOutputSerializer(many=True, read_only=True)
+    items = IncomingShipmentLineOutputSerializer(many=True, read_only=True)
 
     class Meta:
         model = IncomingShipment

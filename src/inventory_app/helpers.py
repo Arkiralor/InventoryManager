@@ -612,7 +612,7 @@ class IncomingShipmentLineHelpers:
 
 
 class IncomingShipmentHelpers:
-    EDITABLE_FIELDS = ("reference", "supplier_name", "invoice_and_documents", "notes")
+    EDITABLE_FIELDS = ("reference", "supplier_name", "invoice_and_documents", "notes", "items")
     INPUT_SERIALIZER = IncomingShipmentInputSerializer
     OUTPUT_SERIALIZER = IncomingShipmentOutputSerializer
     Model = IncomingShipment
@@ -626,16 +626,14 @@ class IncomingShipmentHelpers:
                 "The 'id' parameter is required to fetch the incoming shipment."
             )
             resp.status_code = status.HTTP_400_BAD_REQUEST
-
             logger.error(resp.to_text())
             return resp
 
-        shipment_obj = cls.Model.objects.filter(id=_id).first()
+        shipment_obj = cls.Model.objects.prefetch_related('items').filter(id=_id).first()
         if not shipment_obj:
             resp.error = "Incoming shipment not found."
             resp.message = f"Incoming shipment with id '{_id}' not found."
             resp.status_code = status.HTTP_404_NOT_FOUND
-
             logger.error(resp.to_text())
             return resp
 
@@ -644,7 +642,6 @@ class IncomingShipmentHelpers:
             shipment_obj if return_obj else cls.OUTPUT_SERIALIZER(shipment_obj).data
         )
         resp.status_code = status.HTTP_200_OK
-
         logger.info(resp.to_text())
         return resp
 
@@ -701,16 +698,14 @@ class IncomingShipmentHelpers:
             resp.error = "ID field present."
             resp.message = "The 'id' field is auto-generated and should not be included in the request data."
             resp.status_code = status.HTTP_400_BAD_REQUEST
-
             logger.error(resp.to_text())
-            del data["id"]  # Remove ID if provided to prevent confusion
+            del data["id"]
 
-        data["received_by"] = (
-            user.id
-        )  # Set the received_by field to the current user's ID
-        data["received_on"] = timezone.now().strftime(
-            TIMESTRING_FORMAT
-        )  # Set the received_on field to the current timestamp
+        data["received_by"] = user.id
+        data["received_on"] = timezone.now().strftime(TIMESTRING_FORMAT)
+
+        # Extract items if present
+        items_data = data.pop("items", None)
 
         deserialized = cls.INPUT_SERIALIZER(data=data)
         if not deserialized.is_valid():
@@ -718,22 +713,22 @@ class IncomingShipmentHelpers:
             resp.message = f"{deserialized.errors}"
             resp.data = data
             resp.status_code = status.HTTP_400_BAD_REQUEST
-
             logger.error(resp.to_text())
             return resp
 
-        deserialized.save()
+        shipment = deserialized.save()
 
-        resp.message = (
-            f"Incoming shipment '{deserialized.instance.pk}' created successfully."
-        )
+        # If items are provided, add them to the M2M field
+        if items_data:
+            shipment.items.set(items_data)
+
+        resp.message = f"Incoming shipment '{deserialized.instance.pk}' created successfully."
         resp.data = (
             deserialized.instance
             if return_obj
             else cls.OUTPUT_SERIALIZER(deserialized.instance).data
         )
         resp.status_code = status.HTTP_201_CREATED
-
         logger.info(resp.to_text())
         return resp
 
@@ -746,7 +741,6 @@ class IncomingShipmentHelpers:
             resp.error = "Invalid user."
             resp.message = "A valid user must be provided to perform this action."
             resp.status_code = status.HTTP_400_BAD_REQUEST
-
             logger.error(resp.to_text())
             return resp
 
@@ -754,7 +748,6 @@ class IncomingShipmentHelpers:
             resp.error = "Permission denied."
             resp.message = "You do not have permission to perform this action."
             resp.status_code = status.HTTP_403_FORBIDDEN
-
             logger.error(resp.to_text())
             return resp
 
@@ -770,9 +763,10 @@ class IncomingShipmentHelpers:
                 resp.message = f"The field '{field}' cannot be updated. Only the following fields can be updated: {', '.join(cls.EDITABLE_FIELDS)}."
                 resp.data = data
                 resp.status_code = status.HTTP_400_BAD_REQUEST
-
                 logger.error(resp.to_text())
                 return resp
+
+        items_data = data.pop("items", None)
 
         for field in db_data:
             db_data[field] = data.get(field, db_data[field])
@@ -783,15 +777,15 @@ class IncomingShipmentHelpers:
             resp.message = f"{deserialized.errors}"
             resp.data = data
             resp.status_code = status.HTTP_400_BAD_REQUEST
-
             logger.error(resp.to_text())
             return resp
 
-        deserialized.save()
+        shipment = deserialized.save()
+        shipment: IncomingShipment = deserialized.instance
+        if items_data is not None:
+            shipment.items.set(items_data)
 
-        resp.message = (
-            f"Incoming shipment '{deserialized.instance.pk}' updated successfully."
-        )
+        resp.message = f"Incoming shipment '{deserialized.instance.pk}' updated successfully."
         resp.data = (
             deserialized.instance
             if return_obj

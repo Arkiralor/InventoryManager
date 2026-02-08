@@ -72,6 +72,7 @@ class IncomingShipment(BaseModel):
     received_on = models.DateTimeField(null=True, blank=True)
     received_by = models.ForeignKey(
         django_settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    items = models.ManyToManyField("IncomingShipmentLine", related_name='shipments')
     notes = models.TextField(blank=True, null=True)
 
     def __str__(self):
@@ -98,9 +99,6 @@ class IncomingShipmentLine(BaseModel):
     """
     Represents a line item in an incoming shipment, linking to the inventory item, its quantity, unit cost, and other relevant details.
     """
-
-    shipment = models.ForeignKey(
-        IncomingShipment, on_delete=models.CASCADE, related_name='lines')
     item = models.ForeignKey(
         InventoryItem, on_delete=models.PROTECT, related_name='incoming_lines')
     quantity = models.PositiveIntegerField()

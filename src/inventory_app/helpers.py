@@ -24,8 +24,9 @@ from inventory_app.serializers import (
 )
 from inventory_app import logger
 from core.boilerplate.response_template import Resp
-from core.globals.constants import TIMESTRING_FORMAT
+from core.globals.constants import TIMESTRING_FORMAT, ITEMS_PER_PAGE
 from auth_app.models import User
+from django.core.paginator import Paginator
 
 
 class InventoryItemCategoryHelpers:
@@ -60,6 +61,20 @@ class InventoryItemCategoryHelpers:
 
         resp.message = f"Category ({_id if _id else name}) fetched successfully."
         resp.data = cat_obj if return_obj else cls.Serializer(cat_obj).data
+        resp.status_code = status.HTTP_200_OK
+
+        logger.info(resp.to_text())
+        return resp
+
+    @classmethod
+    def _list(cls, page_no: int = 1, return_objs: bool = False) -> Resp:
+        resp = Resp()
+        categories_qs = cls.Model.objects.all().order_by("name")
+        paginator = Paginator(categories_qs, ITEMS_PER_PAGE)
+        data = paginator.get_page(page_no)
+
+        resp.message = f"Categories list fetched successfully for page {page_no}."
+        resp.data = data if return_objs else cls.Serializer(data, many=True).data
         resp.status_code = status.HTTP_200_OK
 
         logger.info(resp.to_text())

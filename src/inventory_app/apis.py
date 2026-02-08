@@ -15,9 +15,7 @@ class InventoryItemCategoryAPI(APIView):
     permmission_classes = (IsAuthenticated,)
 
     def get(self, request: Request) -> Response:
-        _id = request.query_params.get("id")
-        name = request.query_params.get("name")
-        resp = InventoryItemCategoryHelpers.get(_id=_id, name=name)
+        resp = InventoryItemCategoryHelpers._list()
         return resp.to_response()
 
     def post(self, request: Request) -> Response:
@@ -27,6 +25,12 @@ class InventoryItemCategoryAPI(APIView):
 
 class InventoryItemCategoryManagementAPI(APIView):
     permission_classes = (IsAuthenticated,)
+
+    def get(self, request: Request) -> Response:
+        _id = request.query_params.get("id")
+        name = request.query_params.get("name")
+        resp = InventoryItemCategoryHelpers.get(_id=_id, name=name)
+        return resp.to_response()
 
     def put(self, request: Request) -> Response:
         _id = request.data.get("id")
@@ -38,4 +42,38 @@ class InventoryItemCategoryManagementAPI(APIView):
     def delete(self, request: Request) -> Response:
         _id = request.data.get("id")
         resp = InventoryItemCategoryHelpers.delete(user=request.user, _id=_id)
+        return resp.to_response()
+    
+
+class InventoryItemAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request: Request) -> Response:
+        resp = InventoryItemHelpers.search(
+            query=request.query_params.get("query"),
+        )
+        return resp.to_response()
+
+    def post(self, request: Request) -> Response:
+        resp = InventoryItemHelpers.create(data=request.data)
+        return resp.to_response()
+    
+class InventoryItemManagementAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request: Request) -> Response:
+        _id = request.query_params.get("id")
+        name = request.query_params.get("name")
+        resp = InventoryItemHelpers.get(_id=_id, name=name)
+        return resp.to_response()
+
+    def put(self, request: Request) -> Response:
+        _id = request.data.get("id")
+        resp = InventoryItemHelpers.update(
+            user=request.user, _id=_id, data=request.data
+        )
+        return resp.to_response()
+
+    def delete(self, request: Request) -> Response:
+        resp = InventoryItemHelpers.delete()
         return resp.to_response()

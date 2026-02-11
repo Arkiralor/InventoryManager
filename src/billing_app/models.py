@@ -26,7 +26,44 @@ class ItemTax(BaseModel):
         )
 
 
+class Bill(BaseModel):
+    additional_discount_percentage = models.DecimalField(
+        max_digits=32, decimal_places=2, default=0.00
+    )
+    total_amount = models.DecimalField(max_digits=32, decimal_places=2, default=0.00)
+    paid_amount = models.DecimalField(max_digits=32, decimal_places=2, default=0.00)
+    due_amount = models.DecimalField(max_digits=32, decimal_places=2, default=0.00)
+    note = models.TextField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        self.calculate_totals()
+        if self.note:
+            self.clean_text_attribute("note")
+        super(Bill, self).save(*args, **kwargs)
+
+    def calculate_totals(self):
+        bill_items = self.items
+        total_amount = sum(item.total for item in bill_items)
+        total_amount -= (total_amount * self.additional_discount_percentage) / 100
+        self.total_amount = total_amount
+        self.due_amount = self.total_amount - self.paid_amount
+        
+
+    class Meta:
+        verbose_name = "Bill"
+        verbose_name_plural = "Bills"
+        indexes = (
+            models.Index(fields=("total_amount",)),
+            models.Index(fields=("paid_amount",)),
+            models.Index(fields=("due_amount",)),
+        )
+
+    @property
+    def items(self):
+        return BillItem.objects.filter(bill=self).order_by("created_at")
+
 class BillItem(BaseModel):
+    bill = models.ForeignKey(Bill, on_delete=models.CASCADE, related_name="bill_items")
     item = models.ForeignKey(InventoryItem, on_delete=models.PROTECT)
     taxes = models.ManyToManyField(ItemTax, blank=True)
     quantity = models.PositiveIntegerField(default=1)
@@ -53,33 +90,4 @@ class BillItem(BaseModel):
             models.Index(fields=("quantity",)),
             models.Index(fields=("discount",)),
             models.Index(fields=("total",)),
-        )
-
-
-class Bill(BaseModel):
-    items = models.ManyToManyField(BillItem)
-    additional_discount = models.DecimalField(
-        max_digits=32, decimal_places=2, default=0.00
-    )
-    total_amount = models.DecimalField(max_digits=32, decimal_places=2, default=0.00)
-    paid_amount = models.DecimalField(max_digits=32, decimal_places=2, default=0.00)
-    due_amount = models.DecimalField(max_digits=32, decimal_places=2, default=0.00)
-    note = models.TextField(blank=True, null=True)
-
-    def save(self, *args, **kwargs):
-        items: list[BillItem] = self.items.all()
-        self.total_amount = sum(item.total for item in items) - self.additional_discount
-        self.due_amount = self.total_amount - self.paid_amount
-
-        if self.note:
-            self.clean_text_attribute("note")
-        super(Bill, self).save(*args, **kwargs)
-
-    class Meta:
-        verbose_name = "Bill"
-        verbose_name_plural = "Bills"
-        indexes = (
-            models.Index(fields=("total_amount",)),
-            models.Index(fields=("paid_amount",)),
-            models.Index(fields=("due_amount",)),
         )

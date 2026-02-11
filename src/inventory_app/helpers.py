@@ -419,7 +419,7 @@ class InventoryItemHelpers:
 
 
 class IncomingShipmentLineHelpers:
-    EDITABLE_FIELDS = ("item", "quantity", "price")
+    EDITABLE_FIELDS = ("item", "shipment", "quantity", "unit_cost", "batch_number", "expiry_date")
     INPUT_SERIALIZER = IncomingShipmentLineInputSerializer
     OUTPUT_SERIALIZER = IncomingShipmentLineOutputSerializer
     Model = IncomingShipmentLine
@@ -612,7 +612,7 @@ class IncomingShipmentLineHelpers:
 
 
 class IncomingShipmentHelpers:
-    EDITABLE_FIELDS = ("reference", "supplier_name", "invoice_and_documents", "notes", "items")
+    EDITABLE_FIELDS = ("reference", "supplier_name", "invoice_and_documents", "notes")
     INPUT_SERIALIZER = IncomingShipmentInputSerializer
     OUTPUT_SERIALIZER = IncomingShipmentOutputSerializer
     Model = IncomingShipment
@@ -629,7 +629,7 @@ class IncomingShipmentHelpers:
             logger.error(resp.to_text())
             return resp
 
-        shipment_obj = cls.Model.objects.prefetch_related('items').filter(id=_id).first()
+        shipment_obj = cls.Model.objects.filter(id=_id).first()
         if not shipment_obj:
             resp.error = "Incoming shipment not found."
             resp.message = f"Incoming shipment with id '{_id}' not found."
@@ -704,9 +704,6 @@ class IncomingShipmentHelpers:
         data["received_by"] = user.id
         data["received_on"] = timezone.now().strftime(TIMESTRING_FORMAT)
 
-        # Extract items if present
-        items_data = data.pop("items", None)
-
         deserialized = cls.INPUT_SERIALIZER(data=data)
         if not deserialized.is_valid():
             resp.error = "Invalid data."
@@ -717,10 +714,6 @@ class IncomingShipmentHelpers:
             return resp
 
         shipment = deserialized.save()
-
-        # If items are provided, add them to the M2M field
-        if items_data:
-            shipment.items.set(items_data)
 
         resp.message = f"Incoming shipment '{deserialized.instance.pk}' created successfully."
         resp.data = (
@@ -766,8 +759,6 @@ class IncomingShipmentHelpers:
                 logger.error(resp.to_text())
                 return resp
 
-        items_data = data.pop("items", None)
-
         for field in db_data:
             db_data[field] = data.get(field, db_data[field])
 
@@ -781,9 +772,6 @@ class IncomingShipmentHelpers:
             return resp
 
         shipment = deserialized.save()
-        shipment: IncomingShipment = deserialized.instance
-        if items_data is not None:
-            shipment.items.set(items_data)
 
         resp.message = f"Incoming shipment '{deserialized.instance.pk}' updated successfully."
         resp.data = (

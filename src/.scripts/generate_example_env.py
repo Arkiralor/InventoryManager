@@ -165,7 +165,7 @@ def main():
     env_path = src_dir / '.env'
     output_path = src_dir / 'example.env'
     
-    if not env_path.exists():
+    if not os.path.exists(env_path):
         print(f"Error: .env file not found at {env_path}")
         exit(1)
     

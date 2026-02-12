@@ -36,6 +36,8 @@ class Bill(BaseModel):
     note = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
+        for item in self.items:
+            item.save()
         self.calculate_totals()
         if self.note:
             self.clean_text_attribute("note")
@@ -43,11 +45,10 @@ class Bill(BaseModel):
 
     def calculate_totals(self):
         bill_items = self.items
-        total_amount = sum(item.total for item in bill_items)
+        total_amount = bill_items.aggregate(total=models.Sum('total'))['total'] or 0
         total_amount -= (total_amount * self.additional_discount_percentage) / 100
         self.total_amount = total_amount
         self.due_amount = self.total_amount - self.paid_amount
-        
 
     class Meta:
         verbose_name = "Bill"
